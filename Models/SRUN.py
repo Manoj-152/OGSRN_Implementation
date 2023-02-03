@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.modules.conv import Conv2d
 import math
 
 
@@ -194,7 +193,6 @@ class SRUN(nn.Module):
         for i in range(1, len(self.up_blocks)):
             temp1 = upscale_outs[-1]
             temp2 = self.glus[i-1](outs[-i-1])
-            
             input = torch.cat([temp1, temp2], dim=1)
             result = self.up_blocks[i](input)
             upscale_outs.append(result)
