@@ -78,6 +78,53 @@ class Sub_Pixel_Convolution_Layer(nn.Module):
         return x
 
 
+class Embedder(nn.Module):
+    def __init__(self, **kwargs):
+        super(Embedder, self).__init__()
+        self.kwargs = kwargs
+        self.create_embedding_fn()
+
+    def create_embedding_fn(self):
+        embed_fns = []
+        d = self.kwargs["input_dims"]
+        out_dim = 0
+        if self.kwargs["include_input"]:
+            embed_fns.append(lambda x: x)
+            out_dim += d
+
+        max_freq = self.kwargs["max_freq_log2"]
+        N_freqs = self.kwargs["num_freqs"]
+
+        if self.kwargs["log_sampling"]:
+            freq_bands = 2.0 ** torch.linspace(0.0, max_freq, steps=N_freqs)
+        else:
+            freq_bands = torch.linspace(2.0 ** 0.0, 2.0 ** max_freq, steps=N_freqs)
+
+        for freq in freq_bands:
+            for p_fn in self.kwargs["periodic_fns"]:
+                embed_fns.append(lambda x, p_fn=p_fn, freq=freq: p_fn(x * freq))
+                out_dim += d
+
+        self.embed_fns = embed_fns
+        self.out_dim = out_dim
+
+    def forward(self, inputs):
+        return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
+
+
+class GLU(nn.Module):
+    def __init__(self, res_enc, channels):
+        self.linear = nn.Linear(len(res_enc), channels)
+        self.res_enc = res_enc
+
+    def forward(self, x):
+        # nc = x.size(1)
+        # assert nc % 2 == 0, "channels dont divide 2!"
+        # nc = int(nc/2)
+        enc = self.linear(self.res_enc)
+        return x * torch.sigmoid(enc*x)
+
+
 class SRUN(nn.Module):
 
     def downsampling_block(self, num_filters):
@@ -98,14 +145,24 @@ class SRUN(nn.Module):
         block = nn.Sequential(*blocks)
         return block
         
-    def __init__(self, scale_factor, in_channels=1, filter_size=12, num_eram_layers=20):
+    def __init__(self, scale_factor, in_channels=1, filter_size=12, num_eram_layers=20, res_label=1):
         super(SRUN, self).__init__()
         
         num_blocks = int(math.log2(scale_factor))
         self.down_blocks = nn.ModuleList([])
         self.up_blocks = nn.ModuleList([])
+        self.glus = nn.ModuleList([])
         self.upscale = Sub_Pixel_Convolution_Layer(upscale_ratio=scale_factor, single_layer=False, in_channels=in_channels)
         self.conv1 = nn.Conv2d(in_channels, filter_size, kernel_size=3, stride=1, padding=1)
+        self.input_encoder = Embedder(
+            input_dims = 1,
+            include_input=True,
+            max_freq_log2=9,
+            num_freqs=10,
+            log_sampling=True,
+            periodic_fns=[torch.sin, torch.cos],
+        )
+        self.input_enc = self.input_encoder(res_label)
 
         for _ in range(num_blocks):
             self.down_blocks.append(self.downsampling_block(filter_size))
@@ -115,6 +172,7 @@ class SRUN(nn.Module):
                 self.up_blocks.append(self.upsampling_block(filter_size, filter_size, num_eram_layers))
             else:
                 self.up_blocks.append(self.upsampling_block(filter_size*2, filter_size, num_eram_layers))
+                self.glus.append(GLU(self.input_enc), filter_size)
 
         self.conv2 = nn.Conv2d(filter_size*2, 1, kernel_size=3, stride=1, padding=1)
         self.activation = nn.Tanh()
@@ -135,7 +193,8 @@ class SRUN(nn.Module):
 
         for i in range(1, len(self.up_blocks)):
             temp1 = upscale_outs[-1]
-            temp2 = outs[-i-1]
+            temp2 = self.glus[i-1](outs[-i-1])
+            
             input = torch.cat([temp1, temp2], dim=1)
             result = self.up_blocks[i](input)
             upscale_outs.append(result)
