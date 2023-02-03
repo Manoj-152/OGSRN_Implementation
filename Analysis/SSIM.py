@@ -2,8 +2,13 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import math
+import yaml
+import os
+from glob import glob
+import matplotlib.pyplot as plt
 
 from .Performance_Measures import minmax_scale
+
 
 def gaussian(window_size, sigma):
     """
@@ -91,14 +96,15 @@ def ssim(img1, img2, val_range, minmax = True, window_size=11, window=None, size
 
 
 if __name__ == '__main__':
-    import os
-    from glob import glob
-    import matplotlib.pyplot as plt
-
-    img1 = sorted(glob(os.path.join('../Old_Dataset/Preprocessed_Image_Patches/SAR_Images', '*.npy')))[3]
+    
+    
+    with open('../config.yaml','r') as f:
+        cfg = yaml.safe_load(f)
+    
+    img1 = sorted(glob(os.path.join(cfg['DATASET_PATH'], 'SAR_Images', '*.npy')))[3]
     img1 = np.load(img1)
-    img2 = np.load(sorted(glob(os.path.join('../Old_Dataset/Preprocessed_Image_Patches/SAR_Images', '*.npy')))[7])
-    img3 = np.load(sorted(glob(os.path.join('../Old_Dataset/Preprocessed_Image_Patches/Optic_Images', '*.npy')))[3])
+    img2 = np.load(sorted(glob(os.path.join(cfg['DATASET_PATH'], 'SAR_Images', '*.npy')))[7])
+    img3 = np.load(sorted(glob(os.path.join(cfg['DATASET_PATH'], 'Optic_Images', '*.npy')))[3])
 
     plt.imshow(img1, "gray")
     plt.show()
