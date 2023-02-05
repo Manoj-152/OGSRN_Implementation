@@ -1,9 +1,9 @@
 # Paths need to be changed
 
-DATASET_PATH: "Preprocessed_Image_Patches"
+DATASET_PATH: "lunar_dataset"
 
-INFERENCE_SAR_PATH: 'Inference Images/inference_sar.npy'   # needed if inference is required
-INFERENCE_SAVE_PATH: 'Inference Images/optic_generated.png'
+INFERENCE_SAR_PATH: 'Inference_Images/inference_sar.npy'   # needed if inference is required
+INFERENCE_SAVE_PATH: 'Inference_Images/optic_generated.png'
 
 DATASET:
     HORIZONTAL_FLIP_PROB: 0.5
@@ -21,7 +21,7 @@ BEST_CKPT: 'best_ckpt.pth'
 
 TRAIN:
     NUM_EPOCHS: 200
-    START_FROM_PRETRAINED_WEIGHTS: True
+    START_FROM_PRETRAINED_WEIGHTS: False
     PRETRAINED_WEIGHTS: 'best_ckpt.pth'
     
     TRAIN_TEST_SPLIT: 0.9            # Ratio of train dataset to the whole dataset 

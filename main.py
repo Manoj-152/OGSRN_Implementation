@@ -1,6 +1,6 @@
 from Models.SORTN import SORTN
 from Models.PatchGAN import PatchGAN
-from SORTN_dataset import SAR_optic_dataset
+from SORTN_dataset import TMC_optic_dataset
 import yaml
 import argparse
 
@@ -25,7 +25,7 @@ with open('config.yaml', 'r') as f:
 
 
 generator = SORTN()
-discriminator = PatchGAN(1)
+discriminator = PatchGAN(3)
 generator = generator.to(cfg['DEVICE'])
 discriminator = discriminator.to(cfg['DEVICE'])
 
@@ -33,7 +33,7 @@ discriminator = discriminator.to(cfg['DEVICE'])
 if to_do == 'train':
     
     print('Loading dataset for training')
-    dataset = SAR_optic_dataset(cfg, tensor_transform=True)
+    dataset = TMC_optic_dataset(cfg, tensor_transform=True)
     a = int(cfg['TRAIN']['TRAIN_TEST_SPLIT'] * len(dataset))
     b = len(dataset) - a
     train_ds, val_ds = torch.utils.data.random_split(dataset, (a, b))

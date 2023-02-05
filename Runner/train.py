@@ -43,7 +43,7 @@ def train(cfg, trainloader, valloader, generator, discriminator, optimizer_gen, 
     saving_after_epochs = cfg['TRAIN']['SAVING_AFTER_EPOCHS']
     device = cfg['DEVICE']
     num_epochs = cfg['TRAIN']['NUM_EPOCHS']
-    if cfg['BEST_CKPT'] is not None:
+    if cfg['BEST_CKPT'] is not None and cfg['TRAIN']['START_FROM_PRETRAINED_WEIGHTS'] == True:
         best_ckpt = torch.load(cfg['BEST_CKPT'])
         lowest_validation_loss = best_ckpt['Validation Loss']
         print('Lowest Validation Loss till now: ', lowest_validation_loss)

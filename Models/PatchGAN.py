@@ -41,6 +41,6 @@ class PatchGAN(nn.Module):
 
 if __name__ == '__main__':
     model = PatchGAN(1)
-    inp = torch.randn([8,1,256,256])
+    inp = torch.randn([8,1,400,400])
     out = model(inp)
     print(out.size())
