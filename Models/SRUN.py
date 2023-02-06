@@ -144,7 +144,7 @@ class SRUN(nn.Module):
         block = nn.Sequential(*blocks)
         return block
         
-    def __init__(self, scale_factor, in_channels=1, filter_size=12, num_eram_layers=20, res_label=1):
+    def __init__(self, scale_factor, in_channels=1, filter_size=12, num_eram_layers=20):
         super(SRUN, self).__init__()
         
         num_blocks = int(math.log2(scale_factor))

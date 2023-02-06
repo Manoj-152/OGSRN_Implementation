@@ -68,7 +68,7 @@ class SORTN(nn.Module):
             self.blocks.append(self.upsampling_block(filter_size, int(filter_size/2), dropout))
             filter_size = int(filter_size/2)
 
-        self.blocks.append(self.upsampling_block(filter_size, 1, dropout=False))
+        self.blocks.append(self.upsampling_block(filter_size, 3, dropout=False))
         self.blocks.append(nn.Tanh())
 
         self.model = nn.Sequential(*self.blocks)
