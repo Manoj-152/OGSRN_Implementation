@@ -112,15 +112,16 @@ class Embedder(nn.Module):
 
 
 class GLU(nn.Module):
-    def __init__(self, res_enc, channels):
-        self.linear = nn.Linear(len(res_enc), channels)
-        self.res_enc = res_enc
+    def __init__(self, res_enc_len, channels):
+        super(GLU, self).__init__()
+        self.linear = nn.Linear(res_enc_len, channels)
 
-    def forward(self, x):
+    def forward(self, x, res_enc):
         # nc = x.size(1)
         # assert nc % 2 == 0, "channels dont divide 2!"
         # nc = int(nc/2)
-        enc = self.linear(self.res_enc)
+        enc = self.linear(res_enc)
+        enc = enc.unsqueeze(dim=-1).unsqueeze(dim=-1)
         return x * torch.sigmoid(enc*x)
 
 
@@ -161,7 +162,8 @@ class SRUN(nn.Module):
             log_sampling=True,
             periodic_fns=[torch.sin, torch.cos],
         )
-        self.input_enc = self.input_encoder(res_label)
+        self.temp_enc = self.input_encoder(torch.Tensor([1]))
+        self.res_enc_len = len(self.temp_enc)
 
         for _ in range(num_blocks):
             self.down_blocks.append(self.downsampling_block(filter_size))
@@ -171,12 +173,14 @@ class SRUN(nn.Module):
                 self.up_blocks.append(self.upsampling_block(filter_size, filter_size, num_eram_layers))
             else:
                 self.up_blocks.append(self.upsampling_block(filter_size*2, filter_size, num_eram_layers))
-                self.glus.append(GLU(self.input_enc), filter_size)
+                self.glus.append(GLU(self.res_enc_len, filter_size))
 
         self.conv2 = nn.Conv2d(filter_size*2, 1, kernel_size=3, stride=1, padding=1)
-        self.activation = nn.Tanh()
+        self.activation = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x, res_label):
+        self.input_enc = self.input_encoder(res_label).view(-1,self.res_enc_len)
+        print(self.input_enc.size())
         x = self.upscale(x)
         x = self.conv1(x)
 
@@ -192,7 +196,7 @@ class SRUN(nn.Module):
 
         for i in range(1, len(self.up_blocks)):
             temp1 = upscale_outs[-1]
-            temp2 = self.glus[i-1](outs[-i-1])
+            temp2 = self.glus[i-1](outs[-i-1], self.input_enc)
             input = torch.cat([temp1, temp2], dim=1)
             result = self.up_blocks[i](input)
             upscale_outs.append(result)
@@ -205,10 +209,11 @@ class SRUN(nn.Module):
 
 
 if __name__ == '__main__':
-    model = SRUN(scale_factor=8)
+    model = SRUN(scale_factor=4)
     model = model.cuda()
-    inp = torch.randn(8,1,32,32).cuda()
-    out,features = model(inp)
+    inp = torch.randn(8,1,64,64).cuda()
+    res_label = torch.Tensor([1,2,4,1,2,4,1,2]).unsqueeze(1).cuda()
+    out,features = model(inp, res_label)
     for i in features:
         print(i.size())
     print(out.size())

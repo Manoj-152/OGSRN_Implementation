@@ -69,7 +69,7 @@ class SORTN(nn.Module):
             filter_size = int(filter_size/2)
 
         self.blocks.append(self.upsampling_block(filter_size, 3, dropout=False))
-        self.blocks.append(nn.Tanh())
+        self.blocks.append(nn.Sigmoid())
 
         self.model = nn.Sequential(*self.blocks)
 
@@ -86,6 +86,6 @@ class SORTN(nn.Module):
 if __name__ == '__main__':
     model = SORTN()
     model = model.cuda()
-    inp = torch.randn(8,1,256,256).cuda()
+    inp = torch.randn(8,1,200,200).cuda()
     out,_ = model(inp)
     print(out.size())

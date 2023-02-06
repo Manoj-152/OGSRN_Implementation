@@ -1,7 +1,8 @@
 # Paths need to be changed
 
-DATASET_PATH: "Preprocessed_Image_Patches"
+DATASET_PATH: "lunar_dataset"
 SCALE_RATIO: 4
+INITIAL_SIZE: [400,400]
 
 DATASET:
     HORIZONTAL_FLIP_PROB: 0.5
@@ -21,15 +22,15 @@ INFERENCE_SCALING: 'adaptive histogram'   # Options: (histogram, adaptive histog
 INFERENCE_ADAPTIVE_CLIP_LIMITS: [20,500]   # Used only when adaptive histogram is used
     
 BEST_CKPT: 'SRUN_best_ckpt.pth'
-PRETRAINED_SORTN: 'SORTN_best_ckpt.pth'
+PRETRAINED_SORTN: 'best_ckpt_SORTN.pth'
 
 TRAIN:
     NUM_EPOCHS: 200
-    START_FROM_PRETRAINED_WEIGHTS: True
+    START_FROM_PRETRAINED_WEIGHTS: False
     PRETRAINED_WEIGHTS: 'SRUN_best_ckpt.pth'
     
     TRAIN_TEST_SPLIT: 0.9            # Ratio of train dataset to the whole dataset 
-    BATCH_SIZE: 1                    # Need to test other batch sizes
+    BATCH_SIZE: 2                    # Need to test other batch sizes
     
     INITIAL_LR: 0.0001
     EVAL_LOSS_WEIGHT: 0.1

@@ -1,6 +1,6 @@
 from Models.SORTN import SORTN
 from Models.SRUN import SRUN
-from SRUN_dataset import SAR_optic_dataset
+from SRUN_dataset import TMC_optic_dataset, collate_func
 import yaml
 import argparse
 
@@ -45,12 +45,14 @@ generator.load_state_dict(torch.load(cfg['PRETRAINED_SORTN'])["generator"])
 if to_do == 'train':
     
     print('Loading dataset for training')
-    dataset = SAR_optic_dataset(cfg, tensor_transform=True)
+    dataset = TMC_optic_dataset(cfg, tensor_transform=True)
     a = int(cfg['TRAIN']['TRAIN_TEST_SPLIT'] * len(dataset))
     b = len(dataset) - a
     train_ds, val_ds = torch.utils.data.random_split(dataset, (a, b))
-    trainloader = DataLoader(train_ds, batch_size=cfg['TRAIN']['BATCH_SIZE'], num_workers=2, shuffle=True)
-    valloader = DataLoader(val_ds, batch_size=cfg['TRAIN']['BATCH_SIZE'], num_workers=2, shuffle=False)
+    trainloader = DataLoader(train_ds, batch_size=cfg['TRAIN']['BATCH_SIZE'], collate_fn=collate_func, num_workers=8, shuffle=True)
+    valloader = DataLoader(val_ds, batch_size=cfg['TRAIN']['BATCH_SIZE'], collate_fn=collate_func, num_workers=8, shuffle=False)
+    trainloader_plot = DataLoader(train_ds, batch_size=1, collate_fn=collate_func, num_workers=8, shuffle=True)
+    valloader_plot = DataLoader(val_ds, batch_size=1, collate_fn=collate_func, num_workers=8, shuffle=False)
     
     if cfg['TRAIN']['START_FROM_PRETRAINED_WEIGHTS'] == True:
         
@@ -79,7 +81,7 @@ if to_do == 'train':
         decay_patience = cfg['TRAIN']['PATIENCE']
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='min',factor=decay_factor,patience=decay_patience,verbose=True)
         
-    train(cfg, trainloader, valloader, srun_model, generator, optimizer, scheduler, start_epoch)
+    train(cfg, trainloader, valloader, trainloader_plot, valloader_plot, srun_model, generator, optimizer, scheduler, start_epoch)
     
 else:
     print('Loading the model for inference')

@@ -7,21 +7,22 @@ import torch.nn.functional as F
 import cv2
 
 
-def train_plotter(srun_model, generator, trainloader, epoch, scale_factor, path):
+def train_plotter(cfg, srun_model, generator, trainloader, epoch, scale_factor, path):
     batch_tensor1 = None
     batch_tensor2 = None
     print('Plotting the SRUN Train results')
-    for n,(optic, sar_hr, sar_lr) in enumerate(trainloader):
+    for n,(optic, sar_hr, sar_lr, res_label) in enumerate(trainloader):
         if n == 10: break
         if torch.cuda.is_available():
             optic = optic.cuda()
             sar_hr = sar_hr.cuda()
             sar_lr = sar_lr.cuda()
+            res_label = res_label.cuda()
 
         with torch.no_grad():
-            sar_sr,_ = srun_model(sar_lr)
-            optic_gen_hr,_ = generator(sar_hr)
-            optic_gen_sr,_ = generator(sar_sr)
+            sar_sr,_ = srun_model(sar_lr, res_label)
+            optic_gen_hr,_ = generator(F.interpolate(sar_hr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
+            optic_gen_sr,_ = generator(F.interpolate(sar_sr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
             
         sar_lr_plot = F.interpolate(sar_lr, scale_factor=scale_factor, mode='nearest')
         if batch_tensor1 is None:
@@ -47,22 +48,23 @@ def train_plotter(srun_model, generator, trainloader, epoch, scale_factor, path)
     plt.savefig(path+'Generated_Optic_epoch'+str(epoch)+'.png', dpi=350)
 
 
-def test_plotter(srun_model, generator, valloader, epoch, scale_factor, path):
+def test_plotter(cfg, srun_model, generator, valloader, epoch, scale_factor, path):
     batch_tensor1 = None
     batch_tensor2 = None
     print('Plotting the SRUN Test results')
     number_cnt = 0
-    for n,(optic,sar_hr,sar_lr) in enumerate(valloader):
+    for n,(optic,sar_hr,sar_lr, res_label) in enumerate(valloader):
         if number_cnt >= 10: break
         if random.random() > 0.95:
             if torch.cuda.is_available():
                 optic = optic.cuda()
                 sar_hr = sar_hr.cuda()
                 sar_lr = sar_lr.cuda()
+                res_label = res_label.cuda()
             with torch.no_grad():
-                sar_sr,_ = srun_model(sar_lr)
-                optic_gen_hr,_ = generator(sar_hr)
-                optic_gen_sr,_ = generator(sar_sr)
+                sar_sr,_ = srun_model(sar_lr, res_label)
+                optic_gen_hr,_ = generator(F.interpolate(sar_hr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
+                optic_gen_sr,_ = generator(F.interpolate(sar_sr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
                 
             sar_lr_plot = F.interpolate(sar_lr, scale_factor=scale_factor, mode='nearest')
             if batch_tensor1 is None:

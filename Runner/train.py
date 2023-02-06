@@ -19,7 +19,7 @@ def save_weights(path,optimizer,scheduler,model,epoch):
     
 
 # Function used for training the model
-def train(cfg, trainloader, valloader, srun_model, generator, optimizer, scheduler, start_epoch):
+def train(cfg, trainloader, valloader, trainloader_plot, valloader_plot, srun_model, generator, optimizer, scheduler, start_epoch):
     os.makedirs(cfg['RESULT_DIRS']['WEIGHTS'], exist_ok=True)
     os.makedirs(cfg['RESULT_DIRS']['GENERATED_IMAGES'], exist_ok=True)
     os.makedirs(cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/Generator_Train_Results', exist_ok=True)
@@ -30,7 +30,7 @@ def train(cfg, trainloader, valloader, srun_model, generator, optimizer, schedul
     saving_after_epochs = cfg['TRAIN']['SAVING_AFTER_EPOCHS']
     device = cfg['DEVICE']
     num_epochs = cfg['TRAIN']['NUM_EPOCHS']
-    if cfg['BEST_CKPT'] is not None:
+    if cfg['BEST_CKPT'] is not None and cfg['TRAIN']['START_FROM_PRETRAINED_WEIGHTS'] == True:
         best_ckpt = torch.load(cfg['BEST_CKPT'])
         lowest_validation_loss = best_ckpt['Validation Loss']
         print('Lowest Validation Loss till now: ', lowest_validation_loss)
@@ -49,23 +49,24 @@ def train(cfg, trainloader, valloader, srun_model, generator, optimizer, schedul
         running_psnr = 0.
         running_ssim = 0.
         
-        for n,(optic,sar_hr,sar_lr) in enumerate(tqdm(trainloader)):
+        for n,(optic,sar_hr,sar_lr,res_label) in enumerate(tqdm(trainloader)):
             if n == len(trainloader) - 1: break
             optic = optic.to(device)
             sar_hr = sar_hr.to(device)
             sar_lr = sar_lr.to(device)
+            res_label = res_label.to(device)
     
             optimizer.zero_grad()
             batch_size = optic.size(0)
     
-            sar_sr,_ = srun_model(sar_lr)
+            sar_sr,_ = srun_model(sar_lr, res_label)
             # Content Loss -> L1 Loss between sar_hr and sar_sr
             content_loss = F.l1_loss(sar_sr, sar_hr)
     
             # Evaluation loss -> L1 loss between l_hr and l_sr
             with torch.no_grad():
-                optical_gen_hr,_ = generator(sar_hr)       # sar_hr is the ground truth, there is no need to compute gradients for it as ground truth is independent of the weights
-            optical_gen_sr,_ = generator(sar_sr)
+                optical_gen_hr,_ = generator(F.interpolate(sar_hr, size=cfg['INITIAL_SIZE'], mode='bicubic'))       # sar_hr is the ground truth, there is no need to compute gradients for it as ground truth is independent of the weights
+            optical_gen_sr,_ = generator(F.interpolate(sar_sr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
             # l_hr is the L1 loss between optical gt and optical generated from sar_hr
             # l_sr is the L1 loss between optical gt and optical generatd from sar_sr
             l_hr = F.l1_loss(optical_gen_hr, optic)
@@ -109,20 +110,21 @@ def train(cfg, trainloader, valloader, srun_model, generator, optimizer, schedul
         running_psnr = 0.
         running_ssim = 0.
     
-        for n,(optic,sar_hr,sar_lr) in enumerate(tqdm(valloader)):
+        for n,(optic,sar_hr,sar_lr,res_label) in enumerate(tqdm(valloader)):
             if n == len(valloader) - 1: break
             optic = optic.to(device)
             sar_hr = sar_hr.to(device)
             sar_lr = sar_lr.to(device)
+            res_label = res_label.to(device)
             
             batch_size = optic.size(0)
             with torch.no_grad():
-                sar_sr,_ = srun_model(sar_lr)
+                sar_sr,_ = srun_model(sar_lr, res_label)
             content_loss = F.l1_loss(sar_sr, sar_hr)
             
             with torch.no_grad():
-                optical_gen_hr,_ = generator(sar_hr)
-                optical_gen_sr,_ = generator(sar_sr)
+                optical_gen_hr,_ = generator(F.interpolate(sar_hr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
+                optical_gen_sr,_ = generator(F.interpolate(sar_sr, size=cfg['INITIAL_SIZE'], mode='bicubic'))
             l_hr = F.l1_loss(optical_gen_hr, optic)
             l_sr = F.l1_loss(optical_gen_sr, optic)
             evaluation_loss = F.l1_loss(l_hr, l_sr)
@@ -165,7 +167,7 @@ def train(cfg, trainloader, valloader, srun_model, generator, optimizer, schedul
                       
         scheduler.step(running_loss / (len(valloader) - 1))
         
-        train_plotter(srun_model, generator, trainloader, epoch, cfg['SCALE_RATIO'], cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/Generator_Train_Results/')
-        test_plotter(srun_model, generator, valloader, epoch, cfg['SCALE_RATIO'], cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/Generator_Test_Results/')
+        train_plotter(cfg, srun_model, generator, trainloader_plot, epoch, cfg['SCALE_RATIO'], cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/Generator_Train_Results/')
+        test_plotter(cfg, srun_model, generator, valloader_plot, epoch, cfg['SCALE_RATIO'], cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/Generator_Test_Results/')
         
-        if epoch%20 == 0: plot_features(srun_model, trainloader, epoch, cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/')
+        # if epoch%20 == 0: plot_features(srun_model, trainloader, epoch, cfg['RESULT_DIRS']['GENERATED_IMAGES'] + '/')
