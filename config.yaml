@@ -1,0 +1,34 @@
+# Paths need to be changed
+
+DATASET_PATH: "Preprocessed_Image_Patches"
+
+INFERENCE_SAR_PATH: 'Inference Images/inference_sar.npy'   # needed if inference is required
+INFERENCE_SAVE_PATH: 'Inference Images/optic_generated.png'
+
+DATASET:
+    HORIZONTAL_FLIP_PROB: 0.5
+    VERTICAL_FLIP_PROB: 0.5
+    
+DEVICE: 'cuda'
+
+RESULT_DIRS:
+    WEIGHTS: 'Gen_Disc_Weights'
+    GENERATED_IMAGES: 'Generated_Images'
+    LOSSES: 'Losses'
+    ACCURACIES: 'Accuracies'
+    
+BEST_CKPT: 'best_ckpt.pth'
+
+TRAIN:
+    NUM_EPOCHS: 200
+    START_FROM_PRETRAINED_WEIGHTS: True
+    PRETRAINED_WEIGHTS: 'best_ckpt.pth'
+    
+    TRAIN_TEST_SPLIT: 0.9            # Ratio of train dataset to the whole dataset 
+    BATCH_SIZE: 1                    # Need to test other batch sizes
+    
+    INITIAL_LR: 0.0002
+    BETA_1: 0.5
+    BETA_2: 0.99
+    L1_LOSS_WEIGHT: 100
+    SAVING_AFTER_EPOCHS: 2           # Saves the model every 2 epochs
