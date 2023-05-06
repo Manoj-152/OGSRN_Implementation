@@ -1,0 +1,41 @@
+# Paths need to be changed
+
+DATASET_PATH: "Preprocessed_Image_Patches"
+SCALE_RATIO: 4
+
+DATASET:
+    HORIZONTAL_FLIP_PROB: 0.5
+    VERTICAL_FLIP_PROB: 0.5
+    
+DEVICE: 'cuda'
+
+RESULT_DIRS:
+    WEIGHTS: 'Gen_Disc_Weights'
+    GENERATED_IMAGES: 'Generated_Images'
+    LOSSES: 'Losses'
+    ACCURACIES: 'Accuracies'
+    
+INFERENCE_SAR_DIR: 'Inference_Input'   # reads only tif files
+INFERENCE_SAVE_DIR: 'Inference_Output'  # Generated images are in png format
+INFERENCE_SCALING: 'adaptive histogram'   # Options: (histogram, adaptive histogram)
+INFERENCE_ADAPTIVE_CLIP_LIMITS: [20,500]   # Used only when adaptive histogram is used
+    
+BEST_CKPT: 'SRUN_best_ckpt.pth'
+PRETRAINED_SORTN: 'SORTN_best_ckpt.pth'
+
+TRAIN:
+    NUM_EPOCHS: 200
+    START_FROM_PRETRAINED_WEIGHTS: True
+    PRETRAINED_WEIGHTS: 'SRUN_best_ckpt.pth'
+    
+    TRAIN_TEST_SPLIT: 0.9            # Ratio of train dataset to the whole dataset 
+    BATCH_SIZE: 1                    # Need to test other batch sizes
+    
+    INITIAL_LR: 0.0001
+    EVAL_LOSS_WEIGHT: 0.1
+    BETA_1: 0.9
+    BETA_2: 0.99
+    SAVING_AFTER_EPOCHS: 2           # Saves the model every 2 epochs
+    
+    DECAY_FACTOR: 0.5                # Factor by which adaptive LR scheduler reduces the learning rate (LR)
+    PATIENCE: 5                      # Patience/Tolerance of the scheduler (in epochs)
